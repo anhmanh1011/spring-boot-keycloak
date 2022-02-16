@@ -27,7 +27,7 @@ public class AuthenticationController {
     }
 
     @GetMapping("/create/{userName}/{password}")
-    public Object create(@PathVariable String userName, @PathVariable String password) {
+    public RestResponseDto<String> create(@PathVariable String userName, @PathVariable String password) {
         return keyCloakService.createUser(userName,password);
     }
 

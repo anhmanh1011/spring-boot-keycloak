@@ -1,5 +1,6 @@
 package com.example.springbootkeycloak.service;
 
+import com.example.springbootkeycloak.ex.RestBadRequestException;
 import com.example.springbootkeycloak.ex.RestServerErrorException;
 import com.example.springbootkeycloak.ex.RestUnauthorizedException;
 import com.example.springbootkeycloak.model.request.LoginRequest;
@@ -89,7 +90,7 @@ public class KeyCloakService {
         }
     }
 
-    public Object createUser(String userName, String password) {
+    public RestResponseDto<String> createUser(String userName, String password) {
         // Define user
         UserRepresentation user = new UserRepresentation();
         user.setUsername(userName);
@@ -107,6 +108,7 @@ public class KeyCloakService {
 
         user.setCredentials(Collections.singletonList(passwordCred));
 
+
         // Get realm
         RealmResource realmResource = getInstance().realm(realm);
         UsersResource usersResource = realmResource.users();
@@ -114,8 +116,17 @@ public class KeyCloakService {
         // Create user (requires manage-users role)
         Response response = usersResource.create(user);
         System.out.printf("Repsonse: %s %s%n", response.getStatus(), response.getStatusInfo());
-        System.out.println(response.getLocation());
-        String userId = CreatedResponseUtil.getCreatedId(response);
-        return userId;
+
+        if (response.getStatus() == 201) {
+            System.out.println(response.getLocation());
+            String userId = CreatedResponseUtil.getCreatedId(response);
+            return new RestResponseDto<String>().success(userId);
+        } else if (response.getStatus() == 409) {
+            log.error("error_code_409");
+            throw new RestBadRequestException(ErrorsDto.newBuilder().addMessage(response.getStatusInfo().getReasonPhrase()).build());
+        } else {
+            log.error("error_code_" + response.getStatus());
+            throw new RestBadRequestException(ErrorsDto.newBuilder().addMessage("error_code_" + response.getStatus()).build());
+        }
     }
 }
