@@ -3,13 +3,13 @@ package com.example.springbootkeycloak.utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.tomcat.util.codec.binary.Base64;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
 @Slf4j
 public class FnCommon {
@@ -73,4 +73,18 @@ public class FnCommon {
     public static String getRootURL(HttpServletRequest context) {
         return context.getRequestURL().toString().replace(context.getRequestURI(), "");
     }
+
+
+    private static final List<CharacterRule> passwordCharacterRules = Arrays.asList(
+            new CharacterRule(EnglishCharacterData.LowerCase, 1),
+            new CharacterRule(EnglishCharacterData.UpperCase, 1),
+            new CharacterRule(EnglishCharacterData.Digit, 1),
+            new CharacterRule(EnglishCharacterData.Special, 1)
+    );
+
+    private static final List<CharacterRule> passwordRules = Arrays.asList(
+            new CharacterRule(EnglishCharacterData.LowerCase, 1),
+            new CharacterRule(EnglishCharacterData.UpperCase, 1),
+            new CharacterRule(EnglishCharacterData.Digit, 1)
+    );
 }
