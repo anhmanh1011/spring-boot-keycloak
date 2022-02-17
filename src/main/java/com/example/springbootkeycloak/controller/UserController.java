@@ -8,12 +8,12 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.List;
 
-@Api( tags = "User")
+@Api(tags = "User")
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -23,7 +23,11 @@ public class UserController {
 
     @ApiOperation("Create user")
     @PostMapping("")
+//    @PreAuthorize("hasRole('manage-account')")
     public RestResponseDto<String> create(@RequestBody CreateUserRequest createUserRequest) {
+
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        System.out.println("principal: " + principal);
         return keyCloakService.createUser(createUserRequest);
     }
 
@@ -42,7 +46,7 @@ public class UserController {
     @ApiOperation("Change pass")
     @PutMapping("/pass")
     public RestResponseDto<Object> changePassword(Principal principal, @RequestBody UpdatePasswordRequest updatePasswordRequest) {
-        return keyCloakService.changePass(principal,updatePasswordRequest);
+        return keyCloakService.changePass(principal, updatePasswordRequest);
     }
 
 }

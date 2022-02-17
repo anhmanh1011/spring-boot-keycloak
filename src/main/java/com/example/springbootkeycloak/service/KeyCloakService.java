@@ -9,6 +9,7 @@ import com.example.springbootkeycloak.model.request.LoginRequest;
 import com.example.springbootkeycloak.model.request.UpdatePasswordRequest;
 import com.example.springbootkeycloak.model.response.ErrorsDto;
 import com.example.springbootkeycloak.model.response.RestResponseDto;
+import com.example.springbootkeycloak.utils.FnCommon;
 import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.OAuth2Constants;
@@ -45,11 +46,11 @@ public class KeyCloakService {
     private String authUrl;
     @Value("${keycloak.realm}")
     private String realm;
-    @Value("${keycloak-admin.username}")
-    private String keycloakAdminUserName;
-
-    @Value("${keycloak-admin.password}")
-    private String keycloakAdminPassword;
+//    @Value("${keycloak-admin.username}")
+//    private String keycloakAdminUserName;
+//
+//    @Value("${keycloak-admin.password}")
+//    private String keycloakAdminPassword;
 
     private Keycloak keycloak;
 
@@ -60,9 +61,9 @@ public class KeyCloakService {
             keycloak = KeycloakBuilder.builder()
                     .serverUrl(authUrl)
                     .realm(realm)
-                    .grantType(OAuth2Constants.PASSWORD)
-                    .username(keycloakAdminUserName)
-                    .password(keycloakAdminPassword)
+                    .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+//                    .username(keycloakAdminUserName)
+//                    .password(keycloakAdminPassword)
                     .clientId(clientId)
                     .clientSecret(secretKey)
                     .resteasyClient(new ResteasyClientBuilder()
@@ -130,14 +131,14 @@ public class KeyCloakService {
             return new RestResponseDto<String>().success(userId);
         } else if (response.getStatus() == 409) {
             log.error("error_code_409");
-            throw new RestBadRequestException(ErrorsDto.newBuilder().addMessage(response.getStatusInfo().getReasonPhrase()).build());
+            throw new RestUnauthorizedException(ErrorsDto.newBuilder().addMessage(response.getStatusInfo().getReasonPhrase()).build());
         } else {
             log.error("error_code_" + response.getStatus());
-            throw new RestBadRequestException(ErrorsDto.newBuilder().addMessage("error_code_" + response.getStatus()).build());
+            throw new RestUnauthorizedException(ErrorsDto.newBuilder().addMessage("error_code_" + response.getStatus()).build());
         }
     }
 
-    public RestResponseDto<List> getAllRoles(){
+    public RestResponseDto<List> getAllRoles() {
         ClientRepresentation clientRep = keycloak
                 .realm(realm)
                 .clients()
@@ -154,7 +155,8 @@ public class KeyCloakService {
                 .collect(Collectors.toList());
         return new RestResponseDto<List>().success(availableRoles);
     }
-    public RestResponseDto<UserRepresentation> getUserByUserName(String userName){
+
+    public RestResponseDto<UserRepresentation> getUserByUserName(String userName) {
         List<UserRepresentation> search = keycloak
                 .realm(realm)
                 .users()
@@ -164,20 +166,28 @@ public class KeyCloakService {
     }
 
 
-    public RestResponseDto<Object> changePass(Principal principal, UpdatePasswordRequest updatePasswordRequest){
-
-        String newPassword = updatePasswordRequest.getNewPassword();
-        String confirmPassword = updatePasswordRequest.getConfirmPassword();
-        String currentPassword = updatePasswordRequest.getCurrentPassword();
+    public RestResponseDto<Object> changePass(Principal principal, UpdatePasswordRequest updatePasswordRequest) {
 
 
-        UserResource userResource = keycloak
-                .realm(realm)
-                .users().get(principal.getName());
-        String credentialData = userResource.credentials().get(0).getCredentialData();
-        System.out.println("credentialData: " + credentialData);
+        try {
+            RestResponseDto<AccessTokenResponse> userJWT = this.getUserJWT(new LoginRequest(principal.getName(), updatePasswordRequest.getCurrentPassword()));
+            UsersResource users = keycloak.realm(realm).users();
+            UserRepresentation userRepresentation = users.search(principal.getName()).get(0);
+            String id = userRepresentation.getId();
+            UserResource userResource = keycloak.realm(realm).users().get(id);
 
-        return new RestResponseDto<>().success();
+            CredentialRepresentation passwordCred = new CredentialRepresentation();
+            passwordCred.setTemporary(false);
+            passwordCred.setType(CredentialRepresentation.PASSWORD);
+            passwordCred.setValue(updatePasswordRequest.getConfirmPassword());
+            userResource.resetPassword(passwordCred);
+            return new RestResponseDto<>().success();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RestBadRequestException(ErrorsDto.newBuilder().addMessage(e.getMessage()).build());
+        }
+
+
     }
 
 

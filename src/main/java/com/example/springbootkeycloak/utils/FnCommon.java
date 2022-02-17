@@ -1,5 +1,6 @@
 package com.example.springbootkeycloak.utils;
 
+import com.example.springbootkeycloak.model.response.RestResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.tomcat.util.codec.binary.Base64;
@@ -87,4 +88,8 @@ public class FnCommon {
             new CharacterRule(EnglishCharacterData.UpperCase, 1),
             new CharacterRule(EnglishCharacterData.Digit, 1)
     );
+
+
+
+
 }
